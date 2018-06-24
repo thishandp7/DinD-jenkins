@@ -39,7 +39,7 @@
                           "",
                           [
                               "#!/bin/bash -ex\n",
-                              "echo ECS_CLUSTER=", { "Ref": "EcsCluster" }, " >> /etc/ecs/ecs.config\n",
+                              "echo ECS_CLUSTER=", { "Ref": "ECSCluster" }, " >> /etc/ecs/ecs.config\n",
                               "groupadd -g 1000 jenkins\n",
                               "useradd -u 1000 -g jenkins jenkins\n"
                               "mkdir -p /ecs/jenkins_home\n",
@@ -59,7 +59,7 @@
               "IpProtocol" : "tcp",
               "FromPort" : "8080",
               "ToPort" : "8080",
-              "SourceSecurityGroupId" : { "Ref": "ElbSecurityGroup" }
+              "SourceSecurityGroupId" : { "Ref": "ELBSecurityGroup" }
             },
             {
               "IpProtocol" : "tcp",
@@ -100,7 +100,7 @@
          }
       }
     },
-    "ElbSecurityGroup" : {
+    "ELBSecurityGroup" : {
       "Type" : "AWS::EC2::SecurityGroup",
       "Properties" : {
         "GroupDescription" : "Jenkins ELB Ingress Access",
@@ -117,7 +117,7 @@
        "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
        "Properties": {
           "CrossZone": "false",
-          "SecurityGroups": [ { "Ref": "ElbSecurityGroup" }],
+          "SecurityGroups": [ { "Ref": "ELBSecurityGroup" }],
           "Listeners" : [
             {
               "LoadBalancerPort": "80",
@@ -129,10 +129,10 @@
           "Subnet": [ { "Ref": "SubnetId" }]
        }
     },
-    "EcsCluster": {
+    "ECSCluster": {
       "Type": "AWS::ECS::Cluster"
     },
-    "EcsTaskDefinition": {
+    "ECSTaskDefinition": {
       "Type": "AWS::ECS:TaskDefinition",
       "Properties":{
         "ContainerDefinitions" : [
@@ -165,15 +165,22 @@
         ]
       }
     },
-    "EcsService": {
+    "ECSService": {
       "Type": "AWS::ECS::Service",
       "Properties": {
-        "Cluster": { "Ref": "EcsCluster" },
+        "Cluster": { "Ref": "ECSCluster" },
         "DesiredCount": 1,
-        "TaskDefinition": { "Ref": "EcsTaskDefinition" }
+        "TaskDefinition": { "Ref": "ECSTaskDefinition" }
       }
     },
     "Outputs": {
-
+      "ELBDomainName" : {
+        "Description": "Public DNS name of ELB",
+        "Value" : { "Fn::GetAtt" : [ "ElasticLoadBalancer", "DNSName" ]}
+      },
+      "EC2InstanceDomainName" : {
+        "Description": "Public DNS name of EC2 Instance",
+        "Value" : { "Fn::GetAtt" : [ "EC2Instance", "PublicDnsName" ]}
+      }
     }
 }
