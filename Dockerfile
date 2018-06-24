@@ -5,9 +5,9 @@ ENV DEBIAN_FRONTEND noninteractive
 
 USER root
 
-ARG DOCKER_GID=497
+ARG DOCKER_GID=999
 
-RUN groupadd -g ${DOCKER_GID:-497} docker
+RUN groupadd -g ${DOCKER_GID:-999} docker
 
 RUN apt-get update -qq && apt-get install -qqy \
     apt-transport-https \
@@ -29,8 +29,8 @@ RUN curl -fsSL https://download.docker.com/linux/$(. /etc/os-release; echo "$ID"
     stable" && \
     apt-get update && \
     apt-get -y install docker-ce && \
-    usermod -aG docker jenkins && \
-    usermod -aG users jenkins
+    usermod -a -G docker jenkins && \
+    usermod -a -G users jenkins
 
 RUN pip3 install docker-compose==1.17.1
 

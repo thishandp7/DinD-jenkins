@@ -1,0 +1,108 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "",
+    "Metadata": {
+
+    },
+    "Parameters": {
+      "VpcId": {
+          "Description": "The target VPC Id",
+          "Type": "AWS::EC2::VPC::Id",
+          "Default": "-"
+      },
+      "SubnetId": {
+          "Description": "The target Subnet Id",
+          "Type": "AWS::EC2::Subnet::Id",
+          "Default": "-"
+      },
+      "KeyName": {
+          "Description": "The key pair that is allowed SSH access",
+          "Type": "String",
+          "Default": "-"
+      }
+    },
+    "Mappings": {
+
+    },
+    "Conditions": {
+
+    },
+    "Resources": {
+      "EC2Instance": {
+          "Type": "AWS::EC2::Instance",
+          "Properties": {
+              "KeyName": { "Ref": "KeyName" },
+              "ImageId": "ami-14c5486b",
+              "InstanceType": "t2.micro",
+              "SecurityGroupIds" : [{ "Ref": "EC2InstanceSecurityGroup" }],
+              "IamInstanceProfile": { "Ref": "EC2InstanceProfile" },
+              "Tags": [
+                  {
+                      "Key": "Name",
+                      "Value": {"Fn::Join" : ["",[ { "Ref": "AWS::StackName" }, "-instance" ] ]}
+                  }
+              ],
+              "UserData": {
+                  "Fn::Base64": {
+                      "Fn::Join": [
+                          "",
+                          [
+                              "#!/bin/bash -ex\n",
+                              "echo ECS_CLUSTER=", { "Ref": "EcsCluster" }, " >> /etc/ecs/ecs.config\n",
+                              "groupadd -g 1000 jenkins\n",
+                              "useradd -u 1000 -g jenkins jenkins\n"
+                              "mkdir -p /ecs/jenkins_home\n",
+                              "chown -R jenkins:jenkins /ecs/jenkins_home\n"
+                          ]
+                      ]
+                  }
+              }
+          }
+      },
+      "EC2InstanceSecurityGroup" : {
+        "Type" : "AWS::EC2::SecurityGroup",
+        "Properties" : {
+          "GroupDescription" : "Jenkins Ingress Access",
+          "SecurityGroupIngress" : [
+            {
+              "IpProtocol" : "tcp",
+              "FromPort" : "8080",
+              "ToPort" : "8080",
+              "SourceSecurityGroupId" : { "Ref": "ElbSecurityGroup" }
+            },
+            {
+              "IpProtocol" : "tcp",
+              "FromPort" : "22",
+              "ToPort" : "22",
+              "CidrIp" : "0.0.0.0/0"
+            }
+          ],
+          "VpcId" : { "Ref": "VpcId" },
+          "Tags" :  [ { "Key": "Name", "Value": {"Fn::Join" : ["",[ { "Ref": "AWS::StackName" }, "-instance-sg" ] ]}} ]
+        }
+      },
+      "EC2InstanceRole": {
+         "Type": "AWS::IAM::Role",
+         "Properties": {
+            "AssumeRolePolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Principal": { "Service": [ "ec2.amazonaws.com" ]},
+                  "Action": [ "sts:AssumeRole"]
+                }
+              ]
+             },
+            "Path": "/",
+            "ManagedPolicyArns": [
+              "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role",
+              "arn:aws:iam::aws:policy/AdministratorAccess"
+            ]
+         }
+      }
+    },
+    "Outputs": {
+
+    }
+}
